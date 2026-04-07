@@ -1,86 +1,134 @@
 # Mercator Globe Studio
 
-A lightweight browser tool for:
+Mercator Globe Studio is a small browser app that turns a flat Mercator world map into a globe-ready Equirectangular texture and previews the result on an interactive globe.
 
-- uploading a Mercator world map
-- generating a high-resolution Equirectangular texture from it
-- using that texture as the source for an interactive 3D globe
+It is built as a static client-side tool:
 
-The globe is the primary interface. The flat Equirectangular map is available as a preview and PNG download.
+- no framework
+- no build step
+- no backend
+- no upload to a server
 
-## Publish It
+Everything runs in the browser using plain HTML, CSS, and JavaScript.
 
-The easiest public deployment is GitHub Pages because this app is fully static.
+## What It Does
 
-1. Create a new GitHub repository.
-2. Push the contents of this folder to that repository.
-3. On GitHub, open `Settings` > `Pages`.
-4. Under `Build and deployment`, choose `Deploy from a branch`.
-5. Select the `main` branch and the `/ (root)` folder.
-6. Save, then wait for GitHub Pages to publish the site.
+- Accepts a user-supplied Mercator world map image
+- Reprojects that image into an Equirectangular texture
+- Uses the generated texture as the source for an interactive globe preview
+- Lets the user preview and download the flat texture
+- Lets the user download the current globe view as a PNG
 
-After it finishes, the app will be available at:
+## Who It Is For
 
-`https://YOUR_GITHUB_USERNAME.github.io/YOUR_REPOSITORY_NAME/`
+This tool is meant for people working with custom world maps, including:
 
-## Push It
+- alternate history maps
+- alternate geography maps
+- fictional planet maps
+- stylized world maps that still follow Mercator horizontally
 
-From inside this folder:
+## How It Works
 
-```bash
-cd /path/to/Map-to-Globe
-git init
-git add .
-git commit -m "Initial commit"
-git branch -M main
-git remote add origin https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPOSITORY_NAME.git
-git push -u origin main
-```
+1. The user uploads a Mercator world map image.
+2. The app infers a reasonable Mercator latitude span from the image aspect ratio.
+3. The user can keep that inferred span or override it manually.
+4. The app generates a new Equirectangular texture at the selected output scale.
+5. The generated texture is applied to the interactive globe.
 
-If you prefer GitHub CLI:
+Polar regions outside the source Mercator span are filled by extending the nearest valid source latitude so the globe does not show transparent holes at the poles.
 
-```bash
-cd /path/to/Map-to-Globe
-git init
-git add .
-git commit -m "Initial commit"
-gh repo create YOUR_REPOSITORY_NAME --public --source=. --remote=origin --push
-```
+## Quick Start
 
-## Before Making It Public
+Open `index.html` directly in a browser, or serve it locally.
 
-- Add a license so other people know how they are allowed to use the project. `MIT` is the simplest common choice for a small browser tool.
-- Replace `YOUR_GITHUB_USERNAME` and `YOUR_REPOSITORY_NAME` in the examples above.
-- Test the published Pages URL once after deployment to confirm the worker and downloads behave correctly in production.
-
-## Files
-
-- `index.html`: globe-first app shell
-- `styles.css`: layout and visual styling
-- `projection-core.js`: shared projection math and image resampling
-- `converter-worker.js`: optional worker-backed conversion path
-- `globe-renderer.js`: dependency-free interactive globe renderer
-- `app.js`: browser UI wiring and export flow
-
-## Usage
-
-Open `index.html` in a browser, or serve the folder with a simple static server if you want the worker path to behave more consistently across browsers.
-
-Example:
+Serving it locally is the more reliable option across browsers because some browsers apply stricter `file://` restrictions to worker-based code paths:
 
 ```bash
 python3 -m http.server 8000
 ```
 
-Then open `http://localhost:8000/`.
+Then open [http://localhost:8000/](http://localhost:8000/).
 
-## Assumptions
+## Using The App
 
-- The uploaded image spans the full globe horizontally from `-180°` to `180°`.
-- The uploaded image is a Mercator world map.
-- Polar regions outside the source Mercator span are filled by extending the nearest valid source latitude to avoid visible holes on the globe.
+1. Upload a Mercator map image.
+2. Check the inferred `Min latitude` and `Max latitude`.
+3. Adjust the latitude span if the source image is vertically cropped or non-standard.
+4. Adjust `Texture resolution` to control output size.
+5. Use the globe preview to inspect the result.
+6. Click `Preview flat map` to inspect the generated Equirectangular texture.
+7. Download either the Equirectangular texture or the current globe view.
 
-## Notes
+## Input Assumptions
 
-- Output size is derived from the source width and the selected scale factor, then capped to stay within safer browser memory limits.
-- The main control for unusual maps is the Mercator latitude span. The app can infer it from the image aspect ratio, but the user can override it manually.
+For the conversion to look correct, the source image should follow these assumptions:
+
+- it is a Mercator projection
+- it spans the full globe horizontally
+- the left edge corresponds to `-180°`
+- the right edge corresponds to `180°`
+
+The app does not try to auto-detect arbitrary projections. It is specifically tuned for Mercator input and Equirectangular output.
+
+## Supported Image Formats
+
+The upload control accepts:
+
+- PNG
+- JPG / JPEG
+- WebP
+- AVIF
+- GIF
+
+## Browser Notes
+
+- The app uses a Web Worker when available so the reprojection step does not block the UI as much.
+- If worker setup fails, conversion falls back to the main thread automatically.
+- Output resolution is capped to stay within safer browser memory limits.
+- The globe preview uses a dependency-free canvas renderer and is intended to run in a regular desktop browser.
+
+## Project Structure
+
+- `index.html`: app shell and UI
+- `styles.css`: layout and styling
+- `app.js`: UI behavior, file loading, conversion flow, downloads
+- `projection-core.js`: projection math and image reprojection
+- `converter-worker.js`: worker-backed conversion path
+- `globe-renderer.js`: interactive globe renderer
+
+## Running It Privately
+
+If you only want the project visible to you on GitHub:
+
+- create the repository as `Private`
+- push the code there
+- do not enable GitHub Pages
+
+That keeps the code private. For a normal personal GitHub setup, GitHub Pages is not the right choice for a live site that only you can access.
+
+## Publishing It Publicly Later
+
+Because this is a static app, GitHub Pages is the simplest public deployment option.
+
+Typical flow:
+
+1. Create a public repository.
+2. Push this project to the repository.
+3. In GitHub, open `Settings` > `Pages`.
+4. Choose `Deploy from a branch`.
+5. Select the `main` branch and `/(root)`.
+6. Save and wait for the site to publish.
+
+## Limitations
+
+- Mercator input only
+- Full-world horizontal coverage expected
+- No automatic projection detection
+- No georeferencing metadata import
+- No tiled or streaming rendering pipeline
+
+## License
+
+No license has been added yet. If you want other people to reuse or redistribute the project, add one before making the repository public. `MIT` is the simplest common choice for a small browser tool.
+
