@@ -97,29 +97,6 @@ The upload control accepts:
 - `converter-worker.js`: worker-backed conversion path
 - `globe-renderer.js`: interactive globe renderer
 
-## Running It Privately
-
-If you only want the project visible to you on GitHub:
-
-- create the repository as `Private`
-- push the code there
-- do not enable GitHub Pages
-
-That keeps the code private. For a normal personal GitHub setup, GitHub Pages is not the right choice for a live site that only you can access.
-
-## Publishing It Publicly Later
-
-Because this is a static app, GitHub Pages is the simplest public deployment option.
-
-Typical flow:
-
-1. Create a public repository.
-2. Push this project to the repository.
-3. In GitHub, open `Settings` > `Pages`.
-4. Choose `Deploy from a branch`.
-5. Select the `main` branch and `/(root)`.
-6. Save and wait for the site to publish.
-
 ## Limitations
 
 - Mercator input only
