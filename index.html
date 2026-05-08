@@ -73,18 +73,45 @@
               <strong id="globeTextureMeta">Pending</strong>
             </div>
             <label class="inline-toggle">
-              <input id="autoSpinToggle" type="checkbox" checked />
-              <span>Auto spin</span>
+              <input id="gridToggle" type="checkbox" />
+              <span>Lat / lon grid</span>
             </label>
-            <label class="field compact-field">
-              <span>Speed</span>
+            <label class="field compact-field grid-control-field">
+              <span>Grid color</span>
               <input
-                id="spinSpeedSlider"
+                id="gridColorInput"
+                class="color-input"
+                type="color"
+                value="#f2f6fc"
+                aria-label="Grid color"
+              />
+            </label>
+            <label class="field compact-field grid-control-field">
+              <div class="compact-field-header">
+                <span>Grid size</span>
+                <output id="gridSpacingValue" for="gridSpacingSlider">30°</output>
+              </div>
+              <input
+                id="gridSpacingSlider"
                 type="range"
-                min="2"
-                max="18"
-                value="8"
-                step="1"
+                min="10"
+                max="60"
+                value="30"
+                step="5"
+              />
+            </label>
+            <label class="field compact-field grid-control-field">
+              <div class="compact-field-header">
+                <span>Line thickness</span>
+                <output id="gridThicknessValue" for="gridThicknessSlider">1.0×</output>
+              </div>
+              <input
+                id="gridThicknessSlider"
+                type="range"
+                min="0.5"
+                max="3"
+                value="1"
+                step="0.1"
               />
             </label>
             <button id="resetViewButton" class="ghost-button" type="button">

@@ -292,6 +292,21 @@ body::before {
   min-width: 170px;
 }
 
+.compact-field-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.grid-control-field {
+  min-width: 154px;
+  padding: 10px 14px 12px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid rgba(75, 66, 51, 0.12);
+}
+
 .field span,
 .compact-field span {
   font-size: 0.9rem;
@@ -307,6 +322,27 @@ body::before {
 input[type="number"],
 input[type="range"] {
   width: 100%;
+}
+
+input[type="color"] {
+  width: 100%;
+  min-width: 64px;
+  height: 42px;
+  border: 1px solid rgba(77, 72, 58, 0.16);
+  border-radius: 999px;
+  padding: 4px 6px;
+  background: rgba(255, 255, 255, 0.84);
+  cursor: pointer;
+}
+
+input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+input[type="color"]::-webkit-color-swatch,
+input[type="color"]::-moz-color-swatch {
+  border: 0;
+  border-radius: 999px;
 }
 
 input[type="number"] {
@@ -347,7 +383,8 @@ input[type="range"]::-moz-range-thumb {
 
 input[type="number"]:focus,
 button:focus-visible,
-input[type="range"]:focus-visible {
+input[type="range"]:focus-visible,
+input[type="color"]:focus-visible {
   outline: 2px solid rgba(32, 105, 90, 0.34);
   outline-offset: 2px;
 }

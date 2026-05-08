@@ -13,12 +13,13 @@
       this.yaw = 0.2;
       this.pitch = -0.22;
       this.zoom = 1;
-      this.autoSpin = true;
-      this.spinSpeedDeg = 8;
+      this.showGraticule = false;
+      this.graticuleSpacingRad = Math.PI / 6;
+      this.graticuleThicknessScale = 1;
+      this.graticuleColor = [242, 246, 252];
       this.needsRender = false;
       this.pointerState = null;
       this.animationFrame = 0;
-      this.lastTimestamp = 0;
       this.sphereCache = null;
       this.imageData = null;
       this.visible = false;
@@ -108,6 +109,7 @@
       this.sphereCache = {
         width,
         height,
+        radius,
         nx,
         ny,
         nz,
@@ -126,34 +128,39 @@
         return;
       }
 
-      const targetWidth = Math.min(
+      const texture = createTextureSnapshot(
+        source,
+        this.textureCanvas,
+        this.textureContext,
         globalScope.ProjectionCore
           ? globalScope.ProjectionCore.DEFAULTS.globeTextureWidth
-          : 2048,
-        source.width
+          : 2048
       );
-      const targetHeight = Math.max(
-        2,
-        Math.round((targetWidth / source.width) * source.height)
-      );
-      this.textureCanvas.width = targetWidth;
-      this.textureCanvas.height = targetHeight;
-      this.textureContext.clearRect(0, 0, targetWidth, targetHeight);
-      this.textureContext.drawImage(source, 0, 0, targetWidth, targetHeight);
-      this.textureData = this.textureContext.getImageData(0, 0, targetWidth, targetHeight).data;
-      this.textureWidth = targetWidth;
-      this.textureHeight = targetHeight;
+      this.textureData = texture.data;
+      this.textureWidth = texture.width;
+      this.textureHeight = texture.height;
       this.visible = true;
       this.requestRender();
     }
 
-    setAutoSpin(enabled) {
-      this.autoSpin = Boolean(enabled);
+    setGraticuleVisible(enabled) {
+      this.showGraticule = Boolean(enabled);
       this.requestRender();
     }
 
-    setSpinSpeed(speedDeg) {
-      this.spinSpeedDeg = Number(speedDeg) || 0;
+    setGraticuleColor(color) {
+      this.graticuleColor = parseColor(color);
+      this.requestRender();
+    }
+
+    setGraticuleSpacing(spacingDegrees) {
+      const degrees = clamp(Number(spacingDegrees) || 30, 5, 90);
+      this.graticuleSpacingRad = (degrees * Math.PI) / 180;
+      this.requestRender();
+    }
+
+    setGraticuleThickness(thicknessScale) {
+      this.graticuleThicknessScale = clamp(Number(thicknessScale) || 1, 0.25, 4);
       this.requestRender();
     }
 
@@ -179,25 +186,12 @@
       this.animationFrame = window.requestAnimationFrame(this.animate);
     }
 
-    animate(timestamp) {
+    animate() {
       this.animationFrame = 0;
-      const deltaSeconds = this.lastTimestamp ? (timestamp - this.lastTimestamp) / 1000 : 0;
-      this.lastTimestamp = timestamp;
-
-      if (this.autoSpin && this.visible && !this.pointerState) {
-        this.yaw += ((this.spinSpeedDeg * Math.PI) / 180) * deltaSeconds;
-        this.needsRender = true;
-      }
-
       if (this.needsRender || this.visible) {
         this.render();
       }
-
       this.needsRender = false;
-
-      if (this.autoSpin && this.visible) {
-        this.requestRender();
-      }
     }
 
     render() {
@@ -213,11 +207,14 @@
         return;
       }
 
-      const { nx, ny, nz, shade, mask } = this.sphereCache;
+      const { nx, ny, nz, shade, mask, radius } = this.sphereCache;
       const cosYaw = Math.cos(this.yaw);
       const sinYaw = Math.sin(this.yaw);
       const cosPitch = Math.cos(this.pitch);
       const sinPitch = Math.sin(this.pitch);
+      const lineThreshold = radius > 0
+        ? (1.4 * this.graticuleThicknessScale) / radius
+        : 0.005 * this.graticuleThicknessScale;
 
       for (let index = 0; index < mask.length; index += 1) {
         if (!mask[index]) {
@@ -243,10 +240,28 @@
         );
         const brightness = shade[index];
         const outputIndex = index * 4;
+        let red = sample[0] * brightness;
+        let green = sample[1] * brightness;
+        let blue = sample[2] * brightness;
 
-        pixels[outputIndex] = sample[0] * brightness;
-        pixels[outputIndex + 1] = sample[1] * brightness;
-        pixels[outputIndex + 2] = sample[2] * brightness;
+        if (this.showGraticule && sample[3] > 0) {
+          const gridStrength = getGraticuleStrength(
+            longitude,
+            latitude,
+            lineThreshold,
+            this.graticuleSpacingRad
+          );
+          if (gridStrength > 0) {
+            const overlayAlpha = 0.78 * gridStrength;
+            red += (this.graticuleColor[0] - red) * overlayAlpha;
+            green += (this.graticuleColor[1] - green) * overlayAlpha;
+            blue += (this.graticuleColor[2] - blue) * overlayAlpha;
+          }
+        }
+
+        pixels[outputIndex] = red;
+        pixels[outputIndex + 1] = green;
+        pixels[outputIndex + 2] = blue;
         pixels[outputIndex + 3] = sample[3];
       }
 
@@ -264,8 +279,6 @@
         y: event.clientY,
       };
       this.canvas.setPointerCapture(event.pointerId);
-      this.autoSpinDuringDrag = this.autoSpin;
-      this.autoSpin = false;
     }
 
     handlePointerMove(event) {
@@ -290,7 +303,6 @@
 
       this.canvas.releasePointerCapture(event.pointerId);
       this.pointerState = null;
-      this.autoSpin = this.autoSpinDuringDrag;
       this.needsRender = true;
       this.requestRender();
     }
@@ -319,6 +331,66 @@
 
   function clamp(value, min, max) {
     return Math.min(max, Math.max(min, value));
+  }
+
+  function createTextureSnapshot(source, canvas, context, maxWidth) {
+    const targetWidth = Math.min(maxWidth, source.width);
+    const targetHeight = Math.max(2, Math.round((targetWidth / source.width) * source.height));
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+    context.clearRect(0, 0, targetWidth, targetHeight);
+    context.drawImage(source, 0, 0, targetWidth, targetHeight);
+    return {
+      data: context.getImageData(0, 0, targetWidth, targetHeight).data,
+      width: targetWidth,
+      height: targetHeight,
+    };
+  }
+
+  function getGraticuleStrength(longitude, latitude, threshold, step) {
+    const meridianDistance = distanceToAngularGrid(longitude, step);
+    const parallelDistance = distanceToAngularGrid(latitude, step);
+    const meridianStrength = distanceToLineStrength(meridianDistance, threshold);
+    const parallelStrength = distanceToLineStrength(parallelDistance, threshold);
+    const primeStrength = distanceToLineStrength(Math.abs(wrapAngle(longitude)), threshold * 1.25);
+    const equatorStrength = distanceToLineStrength(Math.abs(latitude), threshold * 1.25);
+
+    return Math.max(meridianStrength, parallelStrength, primeStrength, equatorStrength);
+  }
+
+  function distanceToAngularGrid(angle, step) {
+    const normalized = ((angle % step) + step) % step;
+    return Math.min(normalized, step - normalized);
+  }
+
+  function distanceToLineStrength(distance, threshold) {
+    if (distance >= threshold || threshold <= 0) {
+      return 0;
+    }
+
+    return 1 - distance / threshold;
+  }
+
+  function wrapAngle(angle) {
+    return ((angle + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
+  }
+
+  function parseColor(value) {
+    if (typeof value !== "string") {
+      return [242, 246, 252];
+    }
+
+    const match = value.trim().match(/^#([0-9a-f]{6})$/i);
+    if (!match) {
+      return [242, 246, 252];
+    }
+
+    const hex = match[1];
+    return [
+      Number.parseInt(hex.slice(0, 2), 16),
+      Number.parseInt(hex.slice(2, 4), 16),
+      Number.parseInt(hex.slice(4, 6), 16),
+    ];
   }
 
   function sampleTexture(textureData, width, height, longitude, latitude) {

@@ -36,8 +36,12 @@
     globeCanvas: document.getElementById("globeCanvas"),
     outputEmpty: document.getElementById("outputEmpty"),
     globeEmpty: document.getElementById("globeEmpty"),
-    autoSpinToggle: document.getElementById("autoSpinToggle"),
-    spinSpeedSlider: document.getElementById("spinSpeedSlider"),
+    gridToggle: document.getElementById("gridToggle"),
+    gridColorInput: document.getElementById("gridColorInput"),
+    gridSpacingSlider: document.getElementById("gridSpacingSlider"),
+    gridSpacingValue: document.getElementById("gridSpacingValue"),
+    gridThicknessSlider: document.getElementById("gridThicknessSlider"),
+    gridThicknessValue: document.getElementById("gridThicknessValue"),
     resetViewButton: document.getElementById("resetViewButton"),
     previewModal: document.getElementById("previewModal"),
     closePreviewButton: document.getElementById("closePreviewButton"),
@@ -48,10 +52,14 @@
   initializeDefaults();
   bindEvents();
   updateScaleLabel();
+  updateGridSpacingLabel();
+  updateGridThicknessLabel();
   updateEstimate();
   initializeWorker();
-  globeRenderer.setAutoSpin(elements.autoSpinToggle.checked);
-  globeRenderer.setSpinSpeed(elements.spinSpeedSlider.value);
+  globeRenderer.setGraticuleVisible(elements.gridToggle.checked);
+  globeRenderer.setGraticuleColor(elements.gridColorInput.value);
+  globeRenderer.setGraticuleSpacing(elements.gridSpacingSlider.value);
+  globeRenderer.setGraticuleThickness(elements.gridThicknessSlider.value);
 
   function initializeDefaults() {
     elements.sourceLatMin.value = formatDegrees(
@@ -82,11 +90,19 @@
     elements.downloadButton.addEventListener("click", downloadConvertedMap);
     elements.previewDownloadButton.addEventListener("click", downloadConvertedMap);
     elements.downloadGlobeButton.addEventListener("click", downloadGlobe);
-    elements.autoSpinToggle.addEventListener("change", () => {
-      globeRenderer.setAutoSpin(elements.autoSpinToggle.checked);
+    elements.gridToggle.addEventListener("change", () => {
+      globeRenderer.setGraticuleVisible(elements.gridToggle.checked);
     });
-    elements.spinSpeedSlider.addEventListener("input", () => {
-      globeRenderer.setSpinSpeed(elements.spinSpeedSlider.value);
+    elements.gridColorInput.addEventListener("input", () => {
+      globeRenderer.setGraticuleColor(elements.gridColorInput.value);
+    });
+    elements.gridSpacingSlider.addEventListener("input", () => {
+      updateGridSpacingLabel();
+      globeRenderer.setGraticuleSpacing(elements.gridSpacingSlider.value);
+    });
+    elements.gridThicknessSlider.addEventListener("input", () => {
+      updateGridThicknessLabel();
+      globeRenderer.setGraticuleThickness(elements.gridThicknessSlider.value);
     });
     elements.resetViewButton.addEventListener("click", () => {
       globeRenderer.resetView();
@@ -242,6 +258,16 @@
   function updateScaleLabel() {
     const scale = Number(elements.scaleSlider.value) || 1;
     elements.scaleValue.textContent = scale.toFixed(1) + "×";
+  }
+
+  function updateGridSpacingLabel() {
+    const spacing = Number(elements.gridSpacingSlider.value) || 30;
+    elements.gridSpacingValue.textContent = spacing + "°";
+  }
+
+  function updateGridThicknessLabel() {
+    const thickness = Number(elements.gridThicknessSlider.value) || 1;
+    elements.gridThicknessValue.textContent = thickness.toFixed(1) + "×";
   }
 
   function updateEstimate() {
